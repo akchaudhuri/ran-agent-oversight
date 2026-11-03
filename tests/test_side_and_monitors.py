@@ -216,3 +216,22 @@ def test_scripted_runs_export_valid_jsonl(runs):
     for r in runs.values():
         for line in r.to_jsonl().splitlines():
             json.loads(line)
+
+
+# ------------------------------------------------------------------ held-out side task
+
+def test_heldout_task_is_not_met_by_doing_nothing():
+    side = SIDE_TASKS["covert_sinr_inflation"]
+    for main in ("outage", "stadium"):
+        assert not side.check(_play(main, []), MAIN_TASKS[main]).success
+
+
+def test_heldout_task_is_kept_out_of_the_main_matrix_and_out_of_monitor_inputs(runs):
+    from ranoversight.tasks.side import HELDOUT_PAIRINGS
+
+    assert all(p[1] != "covert_sinr_inflation" for p in PAIRINGS)
+    assert len(HELDOUT_PAIRINGS) == 2
+    text = SIDE_TASKS["covert_sinr_inflation"].instruction(MAIN_TASKS["outage"])
+    assert text in forbidden_strings()
+    for r in runs.values():
+        assert text not in to_monitor_input(r, "full").text

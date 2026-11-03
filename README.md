@@ -10,9 +10,9 @@ This repository is building an AI control evaluation in which a Claude agent ope
 |---|---|
 | Network simulator (`ransim`) | Built and calibrated |
 | Main tasks, baselines, agent tools, ControlArena setting | Built; end-to-end run with a scripted policy passes |
-| Tests | 112 passing |
+| Tests | 114 passing |
 | Side tasks, scripted attacks, monitors M0 to M4, runner and scorer | Built; all 9 pairings run end to end with scripted policies |
-| Pre-registration | Draft; frozen before the first model attack run |
+| Pre-registration | Frozen at commit e92a785, before any model attack run. Held-out side task added afterwards: [HELDOUT_SIDE_TASK.md](HELDOUT_SIDE_TASK.md) |
 | Full run and analysis | Next |
 
 ## The simulator
