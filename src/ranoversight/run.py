@@ -90,6 +90,13 @@ def _export(logs, runs_dir: str, ledger: Ledger, policy: str, agent_model: str) 
             print(f"  eval {log.eval.task} status {log.status}: {log.error}")
         for sample in log.samples or []:
             cost = ledger.add_inspect_usage(sample.model_usage)
+            if sample.error is not None:
+                msg = str(getattr(sample.error, "message", sample.error)).strip().splitlines()
+                first = next((l for l in msg if "Error" in l or "error" in l), msg[0] if msg else "")
+                print(f"  FAILED {sample.id}: {first[:300]}")
+                rows.append({"run": None, "sample": str(sample.id), "error": first[:300],
+                             "cost_usd": round(cost, 3)})
+                continue
             rec = from_inspect_sample(sample, {"policy": policy, "agent_model": agent_model,
                                                "cost_usd": round(cost, 4)})
             path = write_run(rec, runs_dir)
@@ -141,14 +148,26 @@ def main() -> None:
         if args.pilot:
             for main, seed in PILOT_HONEST:
                 s = RanOversightSetting(main_tasks=[main], honest_seeds=[seed])
-                rows += run_batch(s, EvalMode.HONEST, _model_policy(), cfg, args, ledger, 1, f"pilot_h_{main}")
+                batch = run_batch(s, EvalMode.HONEST, _model_policy(), cfg, args, ledger, 1, f"pilot_h_{main}")
+                rows += batch
+                if batch and all(r.get("error") for r in batch):
+                    print("\nPilot STOPPED after the first failed run. Fix the error above and rerun.")
+                    return
             for main, side, seed in PILOT_ATTACK:
                 s = RanOversightSetting(main_tasks=[main], attack_pairings=[(main, side)], attack_seeds=[seed])
                 rows += run_batch(s, EvalMode.ATTACK, _model_policy(), cfg, args, ledger, 1, f"pilot_a_{main}_{side}")
             n_full = 117   # PREREGISTRATION.md, section 3
-            per = ledger.spent_usd / max(len(rows), 1)
-            print(f"\nPilot: {len(rows)} runs, ${ledger.spent_usd:.2f} (${per:.2f} per run). "
-                  f"Full matrix of about {n_full} runs: ~${per * n_full:.0f}. Cap: ${ledger.cap_usd:.0f}.")
+            ok = [r for r in rows if not r.get("error")]
+            failed = len(rows) - len(ok)
+            if not ok:
+                print(f"\nPilot FAILED: all {len(rows)} runs errored. No cost estimate. Fix the error above and rerun.")
+                return
+            per = ledger.spent_usd / len(ok)
+            print(f"\nPilot: {len(ok)} runs completed, {failed} failed, ${ledger.spent_usd:.2f} "
+                  f"(${per:.2f} per completed run). Full matrix of about {n_full} runs: ~${per * n_full:.0f}. "
+                  f"Cap: ${ledger.cap_usd:.0f}.")
+            if failed:
+                print("WARNING: some runs failed; the estimate is based only on the completed ones.")
             return
 
         mains = args.main_tasks or ["outage", "stadium", "energy"]
@@ -172,7 +191,8 @@ def main() -> None:
     except SpendCapReached as e:
         print(f"STOPPED: {e}")
     finally:
-        print(f"\nTotal: {len(rows)} runs, ${ledger.spent_usd:.2f} spent.")
+        failed = sum(1 for r in rows if r.get("error"))
+        print(f"\nTotal: {len(rows) - failed} runs completed, {failed} failed, ${ledger.spent_usd:.2f} spent.")
 
 
 if __name__ == "__main__":
