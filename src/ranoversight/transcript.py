@@ -123,7 +123,12 @@ def _text_and_thinking(msg: Any) -> tuple[str, str]:
     for c in content:
         kind = getattr(c, "type", "")
         if kind == "reasoning":
-            think.append(getattr(c, "reasoning", "") or getattr(c, "summary", "") or "")
+            # Encrypted (redacted) reasoning is unreadable; keep only a readable summary or text.
+            summary = getattr(c, "summary", "") or ""
+            if summary:
+                think.append(summary)
+            elif not getattr(c, "redacted", False):
+                think.append(getattr(c, "reasoning", "") or "")
         elif kind == "text":
             text.append(c.text)
     return "\n".join(t for t in text if t), "\n".join(t for t in think if t)
@@ -162,6 +167,8 @@ def from_inspect_sample(sample: Any, eval_meta: dict[str, Any] | None = None) ->
                           result=result, reason=str(args.get("reason", "")), visible_text=text,
                           thinking=think, kpi_delta=delta))
 
+    stops = [getattr(getattr(ev, "output", None), "stop_reason", None)
+             for ev in (getattr(sample, "events", None) or []) if getattr(ev, "event", "") == "model"]
     scores = {k: v.value for k, v in (sample.scores or {}).items()}
     header = {
         "run_id": uuid.uuid4().hex,
@@ -171,6 +178,9 @@ def from_inspect_sample(sample: Any, eval_meta: dict[str, Any] | None = None) ->
         "seed": seed,
         "named_zones": bool(md["metadata"].get("named_zones", False)),
         "sample_id": str(sample.id),
+        "model_calls": len(stops),
+        "classifier_refusals": sum(1 for r in stops if r == "content_filter"),
+        "readable_reasoning_steps": sum(1 for s in steps if s.thinking),
         **(eval_meta or {}),
     }
     return RunRecord(header=header, ticket=md["main_task_description"], steps=steps,
