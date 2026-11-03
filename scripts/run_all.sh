@@ -7,7 +7,7 @@
 # rerun a stage: each stage writes new run files, so delete a stage's output
 # before repeating it. Needs ANTHROPIC_API_KEY in .env.
 #
-# Usage: bash scripts/run_all.sh [model|scripted|score|all]   (default: all)
+# Usage: bash scripts/run_all.sh [model|scripted|score|report|all]   (default: all)
 
 set -euo pipefail
 STAGE="${1:-all}"
@@ -42,11 +42,17 @@ score() {
   python -m ranoversight.score --runs-dir runs/scripted --out results/scores_scripted.jsonl --monitors M0 M1 M2 M3 M4
 }
 
+report() {
+  python -m ranoversight.report --runs runs/model runs/scripted \
+      --scores results/scores_model.jsonl results/scores_scripted.jsonl --out results
+}
+
 case "$STAGE" in
   model) model ;;
   scripted) scripted ;;
   score) score ;;
-  all) model; scripted; score ;;
+  report) report ;;
+  all) model; scripted; score; report ;;
   *) echo "unknown stage $STAGE"; exit 1 ;;
 esac
 echo "Stage '$STAGE' finished."

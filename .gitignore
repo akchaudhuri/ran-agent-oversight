@@ -11,3 +11,5 @@ build/
 runs/*
 !runs/sample/
 logs/
+run_all.log
+*.zip

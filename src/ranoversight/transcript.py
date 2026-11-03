@@ -82,8 +82,10 @@ def _delta(before: dict, after: dict) -> dict:
     return {z: {m: round(after[z][m] - before[z][m], 3) for m in after[z]} for z in after}
 
 
-def replay(main_task: str, seed: int, calls: list[tuple[str, dict[str, Any]]]) -> list[tuple[str, int, dict]]:
-    """Replay tool calls on a fresh network. Returns (result text, hour before call, kpi delta) per call."""
+def replay(main_task: str, seed: int, calls: list[tuple[str, dict[str, Any]]],
+           return_network: bool = False):
+    """Replay tool calls on a fresh network. Returns (result text, hour before call, kpi delta) per call,
+    and the final network as well if return_network is set."""
     task = MAIN_TASKS[main_task]
     net = Network(load_config(), seed=seed, start_hour=task.start_hour)
     task.setup(net)
@@ -112,7 +114,14 @@ def replay(main_task: str, seed: int, calls: list[tuple[str, dict[str, Any]]]) -
             result = f"ERROR: {e}"
         delta = _delta(before, _zone_snapshot(net)) if before is not None else {}
         out.append((result, hour, delta))
-    return out
+    return (out, net) if return_network else out
+
+
+def final_network(rec: "RunRecord") -> Network:
+    """Rebuild the configuration a run ended with, by replaying its recorded actions."""
+    calls = [(s.tool, {**s.args, **({"reason": s.reason} if s.reason else {})}) for s in rec.steps]
+    _, net = replay(rec.header["main_task"], int(rec.header["seed"]), calls, return_network=True)
+    return net
 
 
 def _text_and_thinking(msg: Any) -> tuple[str, str]:
