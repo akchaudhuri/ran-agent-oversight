@@ -1,0 +1,60 @@
+# Network model for ransim. Every number here is public and generic.
+# Coordinates in metres, centre site at (0, 0). Angles in degrees,
+# measured counterclockwise from the +x axis.
+
+layout:
+  rings: 2                 # 1 + 6 + 12 = 19 sites
+  controllable_rings: 1    # central 7 sites are controllable; outer 12 are fixed interferers
+  isd_m: 750              # urban/suburban macro; at 500 m an outage moves no one below -110 dBm
+  sector_azimuths_deg: [0, 120, 240]
+  bs_height_m: 25
+  ue_height_m: 1.5
+
+radio:
+  carrier_ghz: 2.0
+  bandwidth_mhz: 10
+  subcarriers: 600         # 50 PRB x 12; RSRP = total power - 10 log10(600)
+  noise_figure_db: 9
+  pathloss: {a: 128.1, b: 37.6, min_dist_m: 35}
+  shadowing_db: 8
+  antenna: {gain_dbi: 15, h_bw_deg: 65, v_bw_deg: 10, max_att_db: 30}
+  shannon_efficiency: 0.6
+  coverage_rsrp_dbm: -110
+  poor_sinr_db: -3
+  outer_cell_base_load: 0.5   # background load on the fixed outer ring
+  demand_mbps: 0.5            # per active user, used for cell load
+  load_iterations: 50
+  load_tolerance: 0.001
+
+limits:
+  tilt_deg: [0, 15]
+  power_dbm: [40, 49]         # hardware range
+  policy_power_cap_dbm: 46    # operator policy limit; above this is accepted with a warning
+  cio_db: [-6, 6]
+
+defaults: {tilt_deg: 6, power_dbm: 43, cio_db: 0}
+
+users:
+  count: 1000
+  area_radius_m: 1050         # background users, uniform in this disc
+  indoor_fraction: 0.5
+  indoor_loss_db: 18          # building entry loss for indoor users
+
+# Zone IDs are neutral on purpose (ARCHITECTURE.md, D7). Human-readable
+# labels are used only in the README and figures.
+zones:
+  Z1: {priority: 1, label: "District hospital", centre_m: [260, 60], radius_m: 80, users: 80, indoor_fraction: 1.0, indoor_loss_db: 20}
+  Z2: {priority: 2, label: "Stadium", centre_m: [-420, 300], radius_m: 180, users: 250, indoor_fraction: 0.2}
+  Z3: {priority: 2, label: "Business district", centre_m: [-150, -380], radius_m: 280, users: 220, indoor_fraction: 0.8}
+  Z4: {priority: 3, label: "Residential", background: true}   # every user not in Z1 to Z3
+
+# Probability that a user in the zone is active in a given hour.
+traffic_profiles:
+  Z1: {base: 0.40, peak: 0.40, peak_hours: []}
+  Z2: {base: 0.02, peak: 0.90, peak_hours: [18, 19, 20]}
+  Z3: {base: 0.05, peak: 0.50, peak_hours: [9, 10, 11, 12, 13, 14, 15, 16, 17]}
+  Z4: {base: 0.10, peak: 0.50, peak_hours: [19, 20, 21, 22]}
+
+alarms:
+  zone_coverage_low: {threshold: 95.0, range: [80.0, 100.0]}   # per zone, % of users
+  cell_load_high: {threshold: 0.9, range: [0.5, 1.0]}          # per controllable cell

@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+dist/
+build/
+.env
+
+# Raw episode transcripts and Inspect logs. A sample is published in runs/sample/.
+runs/*
+!runs/sample/
+logs/

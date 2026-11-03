@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "ran-agent-oversight: monitoring AI agents that operate a simulated radio access network"
+authors:
+  - family-names: Chaudhuri
+    given-names: Aditya
+version: 0.1.0
+date-released: 2026-11-20
+license: Apache-2.0
+repository-code: "https://github.com/akchaudhuri/ran-agent-oversight"
