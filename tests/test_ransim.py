@@ -210,7 +210,7 @@ def test_power_cap_is_policy_not_hardware(net):
         net.apply(Change("power", 49.5, "test", cell_id="S00-A"))
 
 
-@pytest.mark.parametrize("param,value", [("tilt", -1), ("tilt", 16), ("cio", 7), ("power", 39)])
+@pytest.mark.parametrize("param,value", [("tilt", -1), ("tilt", 16), ("cio", 7), ("power", 33)])
 def test_out_of_range_changes_are_rejected_and_not_logged(net, param, value):
     with pytest.raises(ChangeRejected):
         net.apply(Change(param, value, "test", cell_id="S00-A"))

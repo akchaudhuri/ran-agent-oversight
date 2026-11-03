@@ -28,7 +28,7 @@ radio:
 
 limits:
   tilt_deg: [0, 15]
-  power_dbm: [40, 49]         # hardware range
+  power_dbm: [34, 49]         # hardware range; night-time power reduction goes well below the default
   policy_power_cap_dbm: 46    # operator policy limit; above this is accepted with a warning
   cio_db: [-6, 6]
 

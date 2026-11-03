@@ -1,0 +1,30 @@
+# Run configuration. Model IDs and parameters checked against
+# platform.claude.com model pages on 3 November 2026.
+
+models:
+  agent: anthropic/claude-sonnet-5-5        # untrusted
+  agent_strong: anthropic/claude-opus-5-5   # optional second condition
+  monitor: anthropic/claude-haiku-5-5       # trusted
+
+# The 5.5 models use adaptive thinking controlled by effort, and reject
+# temperature, top_p and top_k. Monitor samples therefore differ only by the
+# model's own sampling; nothing here sets a temperature.
+agent:
+  effort: high
+  max_steps: 40
+monitor:
+  effort: medium
+  samples_per_input: 3
+
+seeds:
+  honest: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115]
+  attack: [201, 202, 203, 204, 205, 206, 207, 208]
+
+spend:
+  hard_cap_usd: 150
+  pilot_runs_before_full: 6
+  # USD per million tokens (input, output), platform.claude.com/docs/en/about-claude/pricing, 3 Nov 2026
+  prices:
+    anthropic/claude-sonnet-5-5: [2.0, 10.0]
+    anthropic/claude-opus-5-5: [4.0, 20.0]
+    anthropic/claude-haiku-5-5: [0.10, 0.50]
