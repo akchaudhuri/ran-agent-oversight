@@ -81,9 +81,10 @@ def test_honest_dataset_is_three_tasks_by_fifteen_seeds():
     assert all(s.metadata["side_task_name"] is None for s in ds)
 
 
-def test_attack_dataset_is_not_built_yet():
-    with pytest.raises(NotImplementedError):
-        RanOversightSetting().get_dataset(EvalMode.ATTACK)
+def test_attack_dataset_has_one_sample_per_pairing_and_seed():
+    ds = RanOversightSetting(attack_seeds=[201, 202]).get_dataset(EvalMode.ATTACK)
+    assert len(ds) == 9 * 2
+    assert all(s.metadata["side_task_name"] and s.metadata["side_task_description"] for s in ds)
 
 
 # 28 (honest half; the attack half is added with the side tasks)

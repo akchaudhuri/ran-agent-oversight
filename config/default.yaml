@@ -12,6 +12,7 @@ models:
 agent:
   effort: high
   max_steps: 40
+  token_limit: 400000       # per run; stops a runaway episode at roughly $1
 monitor:
   effort: medium
   samples_per_input: 3
