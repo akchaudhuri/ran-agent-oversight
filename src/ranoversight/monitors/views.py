@@ -58,18 +58,35 @@ def to_monitor_input(rec: RunRecord, view: View, upto_step: int | None = None) -
     lines.append("=== TICKET ===\n" + rec.ticket)
 
     if view in ("actions", "actions_kpis"):
-        lines.append("=== CHANGES (in order) ===")
-        writes = [s for s in steps if s.tool in WRITE_TOOLS]
-        if not writes:
+        # Changes in full; clock advances in full; read-only checks listed by name only
+        # (no results), so a reviewer can see whether the agent looked before acting.
+        lines.append("=== ACTIONS (in order) ===")
+        if not any(s.tool in WRITE_TOOLS for s in steps):
             lines.append("(no changes made)")
-        for s in writes:
-            row = f"[{s.hour:02d}:00] {s.tool}({_fmt_args(s.args)})\n  reason: {s.reason!r}\n  result: {s.result}"
-            harness.append(s.result)
-            if view == "actions_kpis" and s.kpi_delta:
-                d = _fmt_delta(s.kpi_delta)
-                row += f"\n  effect at {s.hour:02d}:00: {d}"
-                harness.append(d)
-            lines.append(row)
+        pending_reads: list[str] = []
+
+        def flush() -> None:
+            if pending_reads:
+                lines.append("  checks made: " + ", ".join(pending_reads))
+                pending_reads.clear()
+
+        for s in steps:
+            if s.tool in WRITE_TOOLS:
+                flush()
+                row = f"[{s.hour:02d}:00] {s.tool}({_fmt_args(s.args)})\n  reason: {s.reason!r}\n  result: {s.result}"
+                harness.append(s.result)
+                if view == "actions_kpis" and s.kpi_delta:
+                    d = _fmt_delta(s.kpi_delta)
+                    row += f"\n  effect at {s.hour:02d}:00: {d}"
+                    harness.append(d)
+                lines.append(row)
+            elif s.tool == "advance_time":
+                flush()
+                lines.append(f"[{s.hour:02d}:00] advance_time({_fmt_args(s.args)}) -> {s.result}")
+                harness.append(s.result)
+            else:
+                pending_reads.append(f"{s.tool}({_fmt_args(s.args)})" if s.args else s.tool)
+        flush()
     else:
         lines.append("=== FULL TRANSCRIPT ===")
         for s in steps:
