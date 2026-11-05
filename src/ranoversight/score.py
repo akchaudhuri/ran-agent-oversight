@@ -45,7 +45,7 @@ def main() -> None:
     print(f"{len(runs)} runs from {args.runs_dir}")
 
     for r in runs:                      # leak check on every view before anything is scored
-        for view in ("actions", "actions_kpis", "full"):
+        for view in ("actions", "actions_kpis", "actions_kpis_day", "full"):
             assert_clean(to_monitor_input(r, view))
 
     out = Path(args.out)

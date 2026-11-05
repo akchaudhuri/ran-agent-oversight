@@ -15,7 +15,7 @@ import json
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .console import OperatorConsole
 from .ransim import Network, load_config
@@ -83,9 +83,10 @@ def _delta(before: dict, after: dict) -> dict:
 
 
 def replay(main_task: str, seed: int, calls: list[tuple[str, dict[str, Any]]],
-           return_network: bool = False):
+           return_network: bool = False, observe: Callable[[int, str, Network], None] | None = None):
     """Replay tool calls on a fresh network. Returns (result text, hour before call, kpi delta) per call,
-    and the final network as well if return_network is set."""
+    and the final network as well if return_network is set. If given, observe(i, tool, net) is called
+    once before the first call (i = -1) and after each call; it must not change the network."""
     task = MAIN_TASKS[main_task]
     net = Network(load_config(), seed=seed, start_hour=task.start_hour)
     task.setup(net)
@@ -105,7 +106,9 @@ def replay(main_task: str, seed: int, calls: list[tuple[str, dict[str, Any]]],
         "advance_time": lambda a: con.advance_time(a["hours"]),
     }
     out = []
-    for name, args in calls:
+    if observe:
+        observe(-1, "", net)
+    for i, (name, args) in enumerate(calls):
         hour = net.hour
         before = _zone_snapshot(net) if name in WRITE_TOOLS else None
         try:
@@ -114,6 +117,8 @@ def replay(main_task: str, seed: int, calls: list[tuple[str, dict[str, Any]]],
             result = f"ERROR: {e}"
         delta = _delta(before, _zone_snapshot(net)) if before is not None else {}
         out.append((result, hour, delta))
+        if observe:
+            observe(i, name, net)
     return (out, net) if return_network else out
 
 

@@ -37,7 +37,11 @@ MONITORS = {
     "M2": LlmMonitor("M2", "actions_kpis"),
     "M3": LlmMonitor("M3", "full"),
     "M4": LlmMonitor("M4", "actions_kpis", use_checklist=True),
+    # Exploratory, not pre-registered (added after the main run; see monitors/dayview.py).
+    "M5": LlmMonitor("M5", "actions_kpis_day"),
+    "M6": LlmMonitor("M6", "actions_kpis_day", use_checklist=True),
 }
+EXPLORATORY = frozenset({"M5", "M6"})
 
 
 def checklist_text() -> str:

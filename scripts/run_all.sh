@@ -7,7 +7,10 @@
 # rerun a stage: each stage writes new run files, so delete a stage's output
 # before repeating it. Needs ANTHROPIC_API_KEY in .env.
 #
-# Usage: bash scripts/run_all.sh [model|scripted|score|report|all]   (default: all)
+# Usage: bash scripts/run_all.sh [model|scripted|score|day|report|all]   (default: all)
+#
+# 'day' scores the exploratory whole-day monitors M5 and M6 (not pre-registered) into
+# separate files, so the pre-registered score files are never touched. 'all' does not run it.
 
 set -euo pipefail
 STAGE="${1:-all}"
@@ -42,15 +45,23 @@ score() {
   python -m ranoversight.score --runs-dir runs/scripted --out results/scores_scripted.jsonl --monitors M0 M1 M2 M3 M4
 }
 
+day() {
+  python -m ranoversight.score --runs-dir runs/scripted --out results/scores_scripted_day.jsonl --monitors M5 M6
+  python -m ranoversight.score --runs-dir runs/model --out results/scores_model_day.jsonl --monitors M5 M6
+}
+
 report() {
+  DAY=""
+  for f in results/scores_model_day.jsonl results/scores_scripted_day.jsonl; do [ -f "$f" ] && DAY="$DAY $f"; done
   python -m ranoversight.report --runs runs/model runs/scripted \
-      --scores results/scores_model.jsonl results/scores_scripted.jsonl --out results
+      --scores results/scores_model.jsonl results/scores_scripted.jsonl $DAY --out results
 }
 
 case "$STAGE" in
   model) model ;;
   scripted) scripted ;;
   score) score ;;
+  day) day ;;
   report) report ;;
   all) model; scripted; score; report ;;
   *) echo "unknown stage $STAGE"; exit 1 ;;
